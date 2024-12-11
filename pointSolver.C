@@ -41,8 +41,14 @@ int main(int argc, char *argv[])
 
     // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
+    // Read the mesh
+    #include "createMesh.H"
+   
+    #include "createFields.H"
     Info<< nl;
     runTime.printExecutionTime(Info);
+
+    Info<< F << endl;
 
     Info<< "End\n" << endl;
 
