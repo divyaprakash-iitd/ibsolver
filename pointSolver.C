@@ -31,6 +31,8 @@ Description
 \*---------------------------------------------------------------------------*/
 
 #include "fvCFD.H"
+#include "cloud.H"
+#include "passiveParticle.H"
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
@@ -48,7 +50,13 @@ int main(int argc, char *argv[])
     Info<< nl;
     runTime.printExecutionTime(Info);
 
-    Info<< F << endl;
+
+    // Create the cloud
+    Cloud<passiveParticle> ibpoints(mesh, "pointsCloud", false);
+
+    // Add particles
+    vector pos1(0.025, 0.075, 0.005);
+    ibpoints.addParticle(new passiveParticle(mesh, pos1));
 
    while (runTime.loop())
    {
