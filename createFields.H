@@ -1,5 +1,5 @@
 Info<< "Reading field F\n" << endl;
-volScalarField F
+volVectorField F
 (
     IOobject
     (

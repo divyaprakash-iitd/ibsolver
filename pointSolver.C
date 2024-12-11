@@ -33,8 +33,10 @@ Description
 #include "fvCFD.H"
 #include "cloud.H"
 #include "passiveParticle.H"
-
-
+#include "indexedOctree.H"
+#include "treeDataCell.H"
+#include "diracdelta.H"
+#include "cellSet.H"
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
 int main(int argc, char *argv[])
@@ -49,15 +51,46 @@ int main(int argc, char *argv[])
    
     #include "createFields.H"
     #include "createIbPoints.H"
+    
     Info<< nl;
     runTime.printExecutionTime(Info);
 
+    // Get neighbouring cells around a point
+    // Define the bounding box
+    scalar minX = 0.025;
+    scalar minY = 0.025;
+    scalar minZ = 0.0;
+    scalar maxX = 0.075;
+    scalar maxY = 0.075;
+    scalar maxZ = 0.01;
 
-    
+    treeBoundBox searchBox(point(minX, minY, minZ), point(maxX, maxY, maxZ));
+
+    // Access the octree from the mesh
+    const indexedOctree<treeDataCell>& cellTree = mesh.cellTree();
+
+    // Query the cells in the bounding box
+    labelHashSet foundCells;
+    label count = cellTree.findBox(searchBox, foundCells);
+
+
+    // Spread the force at that point
+    vector pf(0.025, 0.0, 0.00);
+
 
    while (runTime.loop())
    {
         #include "UEqn.H"
+        F = F*0;
+        forAllConstIter(labelHashSet, foundCells, iter){
+            label icell = iter.key();
+            vector rr(0.0, 0.0, 0.0);
+            rr[0] = pos1.x();
+            rr[1] = pos1.y();
+            rr[2] = pos1.z();
+            #include "interpolateForces.H"
+        }
+        
         runTime.write();
    }
 
