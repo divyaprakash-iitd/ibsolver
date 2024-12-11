@@ -50,7 +50,13 @@ int main(int argc, char *argv[])
 
     Info<< F << endl;
 
-    Info<< "End\n" << endl;
+   while (runTime.loop())
+   {
+        #include "UEqn.H"
+        runTime.write();
+   }
+
+   Info<< "End\n" << endl;
 
     return 0;
 }
