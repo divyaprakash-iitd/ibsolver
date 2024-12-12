@@ -55,25 +55,9 @@ int main(int argc, char *argv[])
     Info<< nl;
     runTime.printExecutionTime(Info);
 
-    // Get neighbouring cells around a point
-    // Define the bounding box
-    scalar meshWidth = mesh.C()[1][0] - mesh.C()[0][0];
-    scalar minX = pos1.x() - 3*meshWidth; //0.025;
-    scalar minY = pos1.y() - 3*meshWidth; //0.025;
-    scalar minZ = 0.0;
-    scalar maxX = pos1.x() + 3*meshWidth; //0.075;
-    scalar maxY = pos1.y() + 3*meshWidth; //0.075;
-    scalar maxZ = 0.01;
-
-    treeBoundBox searchBox(point(minX, minY, minZ), point(maxX, maxY, maxZ));
-
     // Access the octree from the mesh
     const indexedOctree<treeDataCell>& cellTree = mesh.cellTree();
-
-    // Query the cells in the bounding box
-    labelHashSet foundCells;
-    label count = cellTree.findBox(searchBox, foundCells);
-
+                
     // Force to be spread
     vector pf(0.025, 0.0, 0.0);
     // Point velocity
@@ -83,41 +67,57 @@ int main(int argc, char *argv[])
    {
         #include "UEqn.H"
         
-        // Spread the force at that point
-        F = F*0;
-        forAllConstIter(labelHashSet, foundCells, iter){
-            label icell = iter.key();
-            vector rr(0.0, 0.0, 0.0);
-            rr[0] = pos1.x();
-            rr[1] = pos1.y();
-            rr[2] = pos1.z();
-            #include "interpolateForces.H"
-        }
-
-        // Interpolate velocity on to the point
-        forAllConstIter(labelHashSet, foundCells, iter){
-            label icell = iter.key();
-            vector rr(0.0, 0.0, 0.0);
-            rr[0] = pos1.x();
-            rr[1] = pos1.y();
-            rr[2] = pos1.z();
-            #include "interpolateVelocity.H"
-        }
-        
-        // Update the position of the particle/point
-        vector dispvec(0.0, 0.0, 0.0);
-        dispvec.x() = pu[0]*runTime.deltaTValue();
-        dispvec.y() = pu[1]*runTime.deltaTValue();
-        dispvec.z() = pu[2]*runTime.deltaTValue();
-
         forAllIter(Cloud<passiveParticle>, ibpoints, iter)
         {
             const vector& pos = iter().position();
             Info<<"Position 0: "<< pos << endl;
             
+            // Get neighbouring cells around a point
+            // Define the bounding box
+            scalar meshWidth = mesh.C()[1][0] - mesh.C()[0][0];
+            scalar minX = pos.x() - 3*meshWidth; //0.025;
+            scalar minY = pos.y() - 3*meshWidth; //0.025;
+            scalar minZ = 0.0;
+            scalar maxX = pos.x() + 3*meshWidth; //0.075;
+            scalar maxY = pos.y() + 3*meshWidth; //0.075;
+            scalar maxZ = 0.01;
+            treeBoundBox searchBox(point(minX, minY, minZ), point(maxX, maxY, maxZ));
+            // Query the cells in the bounding box
+            labelHashSet foundCells;
+            label count = cellTree.findBox(searchBox, foundCells);
+            
+            // Spread the force at that point
+            F = F*0;
+            forAllConstIter(labelHashSet, foundCells, iter){
+                label icell = iter.key();
+                vector rr(0.0, 0.0, 0.0);
+                rr[0] = pos.x();
+                rr[1] = pos.y();
+                rr[2] = pos.z();
+                #include "interpolateForces.H"
+            }
+
+            // Interpolate velocity on to the point
+            pu = 0.0*pu;
+            forAllConstIter(labelHashSet, foundCells, iter){
+                label icell = iter.key();
+                vector rr(0.0, 0.0, 0.0);
+                rr[0] = pos.x();
+                rr[1] = pos.y();
+                rr[2] = pos.z();
+                #include "interpolateVelocity.H"
+                Info<<"pu: "<<pu<<endl;
+            }
+            
+            // Update the position of the particle/point
+            vector dispvec(0.0, 0.0, 0.0);
+            dispvec.x() = pu[0]*runTime.deltaTValue();
+            dispvec.y() = pu[1]*runTime.deltaTValue();
+            dispvec.z() = pu[2]*runTime.deltaTValue();
             // Move particle to new position
             iter().track(dispvec,1.0);  // or iter().move(cloud, newPos);
             
+            Info<<dispvec<<endl;
             Info<<"Position 1: "<< iter().position() << endl;
             
         }
