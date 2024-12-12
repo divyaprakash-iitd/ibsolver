@@ -11,7 +11,8 @@
 
     // Time-dependent angular velocity
     // Example: Sinusoidally varying rotation speed
-    const scalar omega = omega0 * (1.0 + Foam::sin(2.0*3.14*freq*t));
+    // const scalar omega = omega0 * (1.0 + Foam::sin(2.0*3.14*freq*t));
+    const scalar omega = omega0;
 
    forAll(U, i)
    {

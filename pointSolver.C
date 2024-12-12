@@ -57,11 +57,12 @@ int main(int argc, char *argv[])
 
     // Get neighbouring cells around a point
     // Define the bounding box
-    scalar minX = 0.025;
-    scalar minY = 0.025;
+    scalar meshWidth = mesh.C()[1][0] - mesh.C()[0][0];
+    scalar minX = pos1.x() - 3*meshWidth; //0.025;
+    scalar minY = pos1.y() - 3*meshWidth; //0.025;
     scalar minZ = 0.0;
-    scalar maxX = 0.075;
-    scalar maxY = 0.075;
+    scalar maxX = pos1.x() + 3*meshWidth; //0.075;
+    scalar maxY = pos1.y() + 3*meshWidth; //0.075;
     scalar maxZ = 0.01;
 
     treeBoundBox searchBox(point(minX, minY, minZ), point(maxX, maxY, maxZ));
@@ -73,14 +74,16 @@ int main(int argc, char *argv[])
     labelHashSet foundCells;
     label count = cellTree.findBox(searchBox, foundCells);
 
-
-    // Spread the force at that point
-    vector pf(0.025, 0.0, 0.00);
-
+    // Force to be spread
+    vector pf(0.025, 0.0, 0.0);
+    // Point velocity
+    vector pu(0.0, 0.0, 0.0);
 
    while (runTime.loop())
    {
         #include "UEqn.H"
+        
+        // Spread the force at that point
         F = F*0;
         forAllConstIter(labelHashSet, foundCells, iter){
             label icell = iter.key();
@@ -90,7 +93,35 @@ int main(int argc, char *argv[])
             rr[2] = pos1.z();
             #include "interpolateForces.H"
         }
+
+        // Interpolate velocity on to the point
+        forAllConstIter(labelHashSet, foundCells, iter){
+            label icell = iter.key();
+            vector rr(0.0, 0.0, 0.0);
+            rr[0] = pos1.x();
+            rr[1] = pos1.y();
+            rr[2] = pos1.z();
+            #include "interpolateVelocity.H"
+        }
         
+        // Update the position of the particle/point
+        vector dispvec(0.0, 0.0, 0.0);
+        dispvec.x() = pu[0]*runTime.deltaTValue();
+        dispvec.y() = pu[1]*runTime.deltaTValue();
+        dispvec.z() = pu[2]*runTime.deltaTValue();
+
+        forAllIter(Cloud<passiveParticle>, ibpoints, iter)
+        {
+            const vector& pos = iter().position();
+            Info<<"Position 0: "<< pos << endl;
+            
+            // Move particle to new position
+            iter().track(dispvec,1.0);  // or iter().move(cloud, newPos);
+            
+            Info<<"Position 1: "<< iter().position() << endl;
+            
+        }
+
         runTime.write();
    }
 
